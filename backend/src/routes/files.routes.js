@@ -8,7 +8,7 @@ import {
   deleteFile,
   updateFile,
   getAllFiles,
-} from "../controllers/file.controller.js";
+} from "../controllers/file.Controller.js";
 import { allowRoles } from "../middleware/role.middleware.js";
 import { hasPermission } from "../middleware/permission.middleware.js";
 import { checkFileOwnership } from "../middleware/ownership.middleware.js";
