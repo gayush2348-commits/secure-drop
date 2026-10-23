@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import mongoose from "mongoose";
-import RefreshToken from "../models/refreshToken.js";
+import RefreshToken from "../models/RefreshToken.js";
 
 export const getAllUsers = async (req, res, next) => {
   try {
