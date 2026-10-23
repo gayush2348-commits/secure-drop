@@ -8,7 +8,7 @@ import {
   verifyEmail,
   forgotPassword,
   resetPassword,
-} from "../controllers/auth.controller.js";
+} from "../controllers/auth.Controller.js";
 import { isAuthenticated } from "../middleware/auth.middleware.js";
 import {
   signupSchema,
