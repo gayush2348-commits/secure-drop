@@ -3,20 +3,21 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "@exortek/express-mongo-sanitize";
+
 import connectDB from "./src/config/db.js";
 import authRoutes from "./src/routes/auth.routes.js";
 import userRoutes from "./src/routes/user.route.js";
 import fileRoutes from "./src/routes/files.routes.js";
 import adminRoutes from "./src/routes/admin.routes.js";
-import rateLimit from "express-rate-limit";
-import mongoSanitize from "@exortek/express-mongo-sanitize";
 
 dotenv.config();
 
 const app = express();
-app.use(mongoSanitize());
 
 app.use(helmet());
+app.use(mongoSanitize());
 
 app.use(
   cors({
@@ -26,15 +27,14 @@ app.use(
 );
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 100, // max 100 requests
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
   standardHeaders: "draft-8",
   legacyHeaders: false,
   message: {
     message: "Too many requests, please try again later",
   },
 });
-app.use(limiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -46,23 +46,37 @@ const authLimiter = rateLimit({
   },
 });
 
+app.use(limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  res.json({
+  res.status(200).json({
+    success: true,
     message: "SecureDrop API is running",
   });
 });
 
-const PORT = process.env.PORT || 8080;
-connectDB();
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Register API routes before starting the server.
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/admin", adminRoutes);
+
+const PORT = process.env.PORT || 8080;
+
+async function startServer() {
+  try {
+    await connectDB();
+
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`SecureDrop server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start SecureDrop:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
