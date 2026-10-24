@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+} from "react";
 import { apiFetch } from "../services/api";
 
 const AuthContext = createContext();
@@ -8,24 +14,63 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const clearAuth = useCallback(() => {
+    setUser(null);
+    setAccessToken(null);
+  }, []);
+
   const login = (userData, token) => {
     setUser(userData);
     setAccessToken(token);
   };
 
-  const logout = () => {
-    setUser(null);
-    setAccessToken(null);
-  };
+  const logout = useCallback(async () => {
+    try {
+      // Revoke the refresh token on the backend and clear its cookie.
+      await apiFetch("/auth/logout", {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Logout API failed:", error);
+    } finally {
+      // Always clear local authentication, even if the API fails.
+      clearAuth();
+
+      // Notify other tabs in the same origin.
+      try {
+        localStorage.setItem("secure-drop-logout", Date.now().toString());
+      } catch (error) {
+        console.error("Could not notify other tabs:", error);
+      }
+    }
+  }, [clearAuth]);
 
   useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key === "secure-drop-logout") {
+        clearAuth();
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [clearAuth]);
+
+  useEffect(() => {
+    let cancelled = false;
+
     const restoreSession = async () => {
       try {
         const data = await apiFetch("/auth/refresh", {
           method: "POST",
         });
 
-        setAccessToken(data.accessToken);
+        if (!data?.accessToken) {
+          throw new Error("Refresh response did not contain an access token");
+        }
 
         const profileData = await apiFetch("/user/profile", {
           method: "GET",
@@ -34,17 +79,27 @@ export function AuthProvider({ children }) {
           },
         });
 
-        setUser(profileData.user);
+        if (!cancelled) {
+          setAccessToken(data.accessToken);
+          setUser(profileData.user);
+        }
       } catch (error) {
-        setUser(null);
-        setAccessToken(null);
+        if (!cancelled) {
+          clearAuth();
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     restoreSession();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clearAuth]);
 
   return (
     <AuthContext.Provider
