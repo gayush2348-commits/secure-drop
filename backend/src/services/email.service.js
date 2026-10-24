@@ -1,6 +1,4 @@
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+const API_URL = "https://sendliberty.com/api/send";
 
 const getBackendUrl = () => {
   const url = process.env.BACKEND_URL;
@@ -21,20 +19,46 @@ const getEmailSender = () => {
 };
 
 const sendEmail = async ({ to, subject, html }) => {
-  const { data, error } = await resend.emails.send({
-    from: getEmailSender(),
-    to: [to],
-    subject,
-    html,
-  });
+  const apiKey = process.env.SENDLIBERTY_API_KEY;
 
-  if (error) {
-    console.error("EMAIL DELIVERY FAILED:", error);
-    throw new Error("Email delivery failed");
+  if (!apiKey) {
+    throw new Error("SENDLIBERTY_API_KEY is not configured");
   }
 
-  console.log("Email accepted by provider:", data?.id);
-  return data;
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: getEmailSender(),
+      to,
+      subject,
+      html,
+    }),
+  });
+
+  const responseText = await response.text();
+
+  let result;
+  try {
+    result = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    result = { message: responseText };
+  }
+
+  if (!response.ok) {
+    console.error("SENDLIBERTY EMAIL FAILED:", {
+      status: response.status,
+      message: result.message || "Email provider rejected the request",
+    });
+
+    throw new Error(`Email delivery failed with status ${response.status}`);
+  }
+
+  console.log("Email provider accepted request:", response.status);
+  return result;
 };
 
 export const sendVerificationEmail = async (email, token) => {
@@ -45,10 +69,8 @@ export const sendVerificationEmail = async (email, token) => {
     subject: "Verify your SecureDrop account",
     html: `
       <h2>Welcome to SecureDrop</h2>
-      <p>Please verify your email address.</p>
-      <p>
-        <a href="${verificationUrl}">Verify Email</a>
-      </p>
+      <p>Please verify your email address to activate your account.</p>
+      <p><a href="${verificationUrl}">Verify Email</a></p>
       <p>This link expires in 15 minutes.</p>
     `,
   });
