@@ -27,10 +27,13 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
+    // Kept for compatibility with existing MongoDB documents.
+    // Signup currently sets isVerified to true.
     isVerified: {
       type: Boolean,
       default: false,
     },
+
     emailVerificationToken: {
       type: String,
     },
@@ -38,9 +41,11 @@ const userSchema = new mongoose.Schema(
     emailVerificationExpires: {
       type: Date,
     },
+
     passwordResetToken: {
       type: String,
     },
+
     passwordResetExpires: {
       type: Date,
     },
