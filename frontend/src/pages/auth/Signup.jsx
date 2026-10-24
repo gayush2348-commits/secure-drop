@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../services/api";
 
 function Signup() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -11,7 +13,6 @@ function Signup() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [signupSuccess, setSignupSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -32,77 +33,20 @@ function Signup() {
         body: JSON.stringify(formData),
       });
 
-      setSignupSuccess(true);
+      // Signup successful: redirect directly to Login
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: "Account created successfully! Please log in.",
+          email: formData.email,
+        },
+      });
     } catch (error) {
-      setError(error.message);
+      setError(error.message || "Unable to create your account.");
     } finally {
       setLoading(false);
     }
   };
-
-  // Signup successful: show email verification message
-  if (signupSuccess) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg sm:p-8">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.7"
-              className="h-8 w-8"
-              aria-hidden="true"
-            >
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <path d="m3 7 9 6 9-6" />
-            </svg>
-          </div>
-
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Check your email
-          </h1>
-
-          <p className="mt-3 text-sm leading-6 text-slate-600 sm:text-base">
-            Your account has been created successfully. Verify your email
-            address to activate your SecureDrop account.
-          </p>
-
-          <div className="mt-5 break-words rounded-xl border border-blue-100 bg-blue-50 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-blue-700">
-              Verification email sent to
-            </p>
-            <p className="mt-1 font-semibold text-slate-800">
-              {formData.email}
-            </p>
-          </div>
-
-          <p className="mt-5 text-sm leading-6 text-slate-500">
-            Open your inbox and click the verification link. If you don't see
-            the email, check your spam or junk folder.
-          </p>
-
-          <Link
-            to="/login"
-            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Go to Login
-          </Link>
-
-          <p className="mt-5 text-sm text-slate-500">
-            Already verified?{" "}
-            <Link
-              to="/login"
-              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-            >
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
@@ -197,13 +141,13 @@ function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="mt-6 text-center text-sm text-slate-600">
           Already have an account?{" "}
           <Link
             to="/login"
