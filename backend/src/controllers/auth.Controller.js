@@ -168,7 +168,7 @@ export const refreshAccessToken = async (req, res) => {
 
 export const logout = async (req, res, next) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken = req.cookies?.refreshToken;
 
     if (refreshToken) {
       await RefreshToken.deleteOne({
@@ -176,7 +176,12 @@ export const logout = async (req, res, next) => {
       });
     }
 
-    res.clearCookie("refreshToken");
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/",
+    });
 
     return res.status(200).json({
       message: "Logout successful",
